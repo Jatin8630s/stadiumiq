@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>StadiumIQ 2026 — Organizer Command Hub</title>
+  <meta name="description" content="Organizer AI Command Hub — Situation Room, Decision Support, Sustainability, Runsheet.">
+  <link rel="stylesheet" href="../../styles/global.css">
+  <link rel="stylesheet" href="../../styles/animations.css">
+  <link rel="stylesheet" href="../../styles/components.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    .org-sidebar-btn { display: flex; align-items: center; gap: var(--space-3); padding: var(--space-3) var(--space-4); border-radius: var(--radius-md); cursor: pointer; transition: all var(--transition-base); color: var(--text-secondary); font-size: var(--text-sm); font-weight: 500; border: none; background: transparent; width: 100%; }
+    .org-sidebar-btn:hover { background: var(--glass-bg); color: var(--text-primary); }
+    .org-sidebar-btn.active { background: rgba(245,166,35,0.12); color: var(--accent-gold); }
+    .org-content { display: none; }
+    .org-content.active { display: block; animation: fadeInUp 0.35s ease; }
+  </style>
+</head>
+<body class="hero-bg">
+
+  <!-- Navbar -->
+  <nav class="navbar">
+    <a href="../../index.html" class="navbar-brand">
+      <div class="navbar-logo" style="background:var(--grad-organizer)">🎯</div>
+      <div>
+        <div class="navbar-title">StadiumIQ Command</div>
+        <div class="navbar-subtitle">Organizer Hub · Match Day 3</div>
+      </div>
+    </a>
+    <div class="navbar-actions">
+      <div class="live-dot">Situation Room Active</div>
+      <div class="navbar-persona">🎯 Director Mode</div>
+      <a href="../../index.html" class="btn btn-ghost btn-sm">← Exit</a>
+    </div>
+  </nav>
+
+  <!-- Sidebar Layout -->
+  <div class="sidebar-layout" style="min-height:calc(100vh - 64px)">
+
+    <aside class="sidebar" style="display:flex;flex-direction:column;gap:var(--space-2)">
+      <div style="font-size:10px;color:var(--text-disabled);text-transform:uppercase;letter-spacing:0.12em;margin-bottom:var(--space-2)">Command</div>
+      <button class="org-sidebar-btn active" data-org="situation" id="org-btn-situation">
+        <span>🎯</span> Situation Room
+      </button>
+      <button class="org-sidebar-btn" data-org="decision" id="org-btn-decision">
+        <span>🤖</span> AI Decision Support
+      </button>
+      <button class="org-sidebar-btn" data-org="sustainability" id="org-btn-sustainability">
+        <span>🌱</span> Sustainability
+      </button>
+      <button class="org-sidebar-btn" data-org="transport" id="org-btn-transport">
+        <span>🚌</span> Transport Ops
+      </button>
+
+      <div style="font-size:10px;color:var(--text-disabled);text-transform:uppercase;letter-spacing:0.12em;margin:var(--space-4) 0 var(--space-2)">Status</div>
+
+      <!-- Match Status Card -->
+      <div class="card" style="background:rgba(245,166,35,0.06);border-color:rgba(245,166,35,0.2)">
+        <div style="font-size:10px;color:var(--text-muted);margin-bottom:var(--space-2)">Current Match</div>
+        <div style="font-weight:700;font-size:var(--text-sm)">🇧🇷 BRA vs ARG 🇦🇷</div>
+        <div style="font-family:'Orbitron',monospace;font-size:var(--text-2xl);font-weight:800;margin:var(--space-2) 0;color:var(--accent-gold)" id="org-score">2 — 1</div>
+        <div class="live-dot" id="org-minute">69'</div>
+      </div>
+
+      <!-- Quick Alert -->
+      <div class="alert alert-danger" style="margin-top:var(--space-2)">
+        <span class="alert-icon">🚨</span>
+        <div style="font-size:10px">Gate 7 density critical. Open Gate 7B.</div>
+      </div>
+
+      <div style="margin-top:auto">
+        <button class="btn btn-gold btn-full btn-sm" id="emergency-broadcast">📢 Emergency Broadcast</button>
+      </div>
+    </aside>
+
+    <main style="padding:var(--space-6);overflow-y:auto">
+
+      <!-- Situation Room -->
+      <div class="org-content active" id="org-content-situation">
+        <div style="margin-bottom:var(--space-5)">
+          <h2 style="font-family:'Orbitron',monospace;letter-spacing:0.03em">🎯 Situation Room</h2>
+          <div style="color:var(--text-muted);font-size:var(--text-sm);margin-top:4px">MetLife Stadium · Brazil vs Argentina · Match Day 3 · Live</div>
+        </div>
+
+        <!-- Top KPI Grid -->
+        <div class="kpi-grid" style="margin-bottom:var(--space-6)">
+          ${[
+            { id: 'sit-fans', val: '83,240', label: 'Fans Inside', color: 'var(--accent-primary)', sub: '98% capacity' },
+            { id: 'sit-incidents', val: '4', label: 'Open Incidents', color: 'var(--accent-red)', sub: '1 critical' },
+            { id: 'sit-transport', val: '74%', label: 'Transport Load', color: 'var(--accent-gold)', sub: 'Metro: 91%' },
+            { id: 'sit-nps', val: '82', label: 'Fan NPS Score', color: 'var(--accent-green)', sub: '▲ +5 vs last' },
+            { id: 'sit-carbon', val: '847t', label: 'Carbon Today', color: 'var(--accent-orange)', sub: '+12% vs target' },
+            { id: 'sit-rt', val: '3.2m', label: 'Med. Response', color: 'var(--accent-cyan)', sub: 'Avg time' },
+          ].map(k => `
+            <div class="stat-card animate-fade-in-up">
+              <div class="stat-value" id="${k.id}" style="color:${k.color}">${k.val}</div>
+              <div class="stat-label">${k.label}</div>
+              <div style="font-size:10px;color:var(--text-muted);margin-top:4px">${k.sub}</div>
+            </div>
+          `).join('')}
+        </div>
+
+        <!-- Active Alerts Summary -->
+        <div class="card" style="margin-bottom:var(--space-5)">
+          <div class="section-header">
+            <div class="section-title">⚡ Active Situation Alerts</div>
+            <span class="badge badge-red badge-pulse">3 Require Action</span>
+          </div>
+          <div class="flex-col gap-3">
+            ${[
+              { sev: 'critical', icon: '🚨', text: 'Gate 7 — crowd density 94%. Gate 7B overflow recommended.', action: 'Open Gate 7B' },
+              { sev: 'warning', icon: '⚠️', text: 'Carbon tracking 12% above target. LED Zone 4 fault.', action: 'View Details' },
+              { sev: 'warning', icon: '🚌', text: 'Bus Route 7 dispatch unconfirmed. Runsheet gap flagged.', action: 'Assign Now' },
+            ].map(a => `
+              <div class="flex items-center gap-3 ${a.sev === 'critical' ? 'alert alert-danger' : 'alert alert-warning'}">
+                <span class="alert-icon">${a.icon}</span>
+                <div style="flex:1;font-size:var(--text-xs)">${a.text}</div>
+                <button class="btn btn-ghost btn-sm">${a.action}</button>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+
+        <!-- Crowd Overview Map -->
+        <div class="card">
+          <div class="section-title" style="margin-bottom:var(--space-4)">👥 Crowd Overview</div>
+          <div id="org-crowd-grid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:var(--space-3)"></div>
+        </div>
+      </div>
+
+      <!-- AI Decision Support -->
+      <div class="org-content" id="org-content-decision">
+        <div id="decision-mount"></div>
+      </div>
+
+      <!-- Sustainability -->
+      <div class="org-content" id="org-content-sustainability">
+        <h3 style="margin-bottom:var(--space-4)">🌱 Sustainability Dashboard</h3>
+        <div id="sustain-standalone" class="flex-col gap-5">
+          <!-- Reuse from decision-support or duplicate key widgets -->
+          <div class="kpi-grid">
+            ${[
+              { label: 'Energy Used', val: '847 MWh', target: '720 MWh', pct: 118, color: 'var(--accent-orange)', icon: '⚡' },
+              { label: 'Water Consumed', val: '38,000 L', target: '45,000 L', pct: 84, color: 'var(--accent-cyan)', icon: '💧' },
+              { label: 'Recycling Rate', val: '78%', target: '70%', pct: 111, color: 'var(--accent-green)', icon: '♻️' },
+              { label: 'Carbon Footprint', val: '847 t CO₂e', target: '750 t', pct: 113, color: 'var(--accent-red)', icon: '🌡️' },
+            ].map(m => `
+              <div class="stat-card">
+                <div style="font-size:24px;margin-bottom:var(--space-2)">${m.icon}</div>
+                <div class="stat-value" style="font-size:var(--text-xl);color:${m.color}">${m.val}</div>
+                <div class="stat-label">${m.label}</div>
+                <div class="progress-bar" style="margin-top:var(--space-2)">
+                  <div class="progress-bar-fill" style="width:${Math.min(m.pct, 100)}%;background:${m.color}"></div>
+                </div>
+                <div style="font-size:10px;margin-top:4px;color:${m.pct > 100 ? 'var(--accent-red)' : 'var(--accent-green)'}">
+                  ${m.pct > 100 ? `▲ ${m.pct - 100}% over target` : `✓ ${100 - m.pct}% below target`}
+                </div>
+              </div>
+            `).join('')}
+          </div>
+          <div class="card">
+            <div class="section-title" style="margin-bottom:var(--space-3)">🤖 AI Sustainability Insights</div>
+            <div class="flex-col gap-3">
+              ${[
+                { icon:'⚡', insight:'LED Zone 4 fault is causing +18% energy overrun. Maintenance team notified. ETA fix: 30 minutes.', action:'View Alert' },
+                { icon:'🚌', insight:'Shuttle routes B7 & B9 are suboptimal. AI suggests rerouting via North gate for 8% emission reduction.', action:'Optimize' },
+                { icon:'♻️', insight:'Waste team exceeding recycling target by 8%. Share best practice with other venues.', action:'Share Report' },
+                { icon:'💡', insight:'Dim LED banks in unoccupied Sections 220–240 during halftime. Saves ~2.3t CO₂e tonight.', action:'Auto-Dim' },
+              ].map(i => `
+                <div class="decision-option">
+                  <div style="font-size:24px">${i.icon}</div>
+                  <div style="flex:1">
+                    <div style="font-size:var(--text-sm);line-height:1.6">${i.insight}</div>
+                  </div>
+                  <button class="btn btn-ghost btn-sm">${i.action}</button>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+          <div class="card">
+            <div class="flex justify-between items-center" style="margin-bottom:var(--space-3)">
+              <div class="section-title">📄 Generate Report</div>
+              <button class="btn btn-green btn-sm" id="org-gen-report">Generate Now</button>
+            </div>
+            <div id="org-sustain-report" style="display:none;font-size:var(--text-sm);line-height:1.8;color:var(--text-secondary);padding:var(--space-4);background:var(--glass-bg);border-radius:var(--radius-md)"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Transport Ops -->
+      <div class="org-content" id="org-content-transport">
+        <h3 style="margin-bottom:var(--space-4)">🚌 Transport Operations</h3>
+        <div class="flex-col gap-4">
+          <div class="kpi-grid">
+            ${[
+              { val: '91%', label: 'Metro Capacity', color: 'var(--accent-red)', sub: 'Line 3 — near full' },
+              { val: '14', label: 'Active Shuttles', color: 'var(--accent-primary)', sub: '2 delayed' },
+              { val: '1.8x', label: 'Rideshare Surge', color: 'var(--accent-orange)', sub: 'Expected ↑ peak at FT' },
+              { val: '72%', label: 'Parking Full', color: 'var(--accent-gold)', sub: 'Lot A: Full · C: 72%' },
+            ].map(k => `<div class="stat-card"><div class="stat-value" style="color:${k.color}">${k.val}</div><div class="stat-label">${k.label}</div><div style="font-size:10px;color:var(--text-muted);margin-top:4px">${k.sub}</div></div>`).join('')}
+          </div>
+          <div class="card">
+            <div class="section-title" style="margin-bottom:var(--space-3)">🤖 Post-Match Egress Plan</div>
+            <div class="flex-col gap-3">
+              ${[
+                { time: 'FT+0', action: 'Open all 8 gates simultaneously', status: 'ready' },
+                { time: 'FT+2', action: 'Deploy 6 traffic marshals on Metro path', status: 'ready' },
+                { time: 'FT+5', action: 'Bus Route 7 dispatch — Platform 7 Gate A', status: 'pending' },
+                { time: 'FT+8', action: 'Activate rideshare surge pricing alert on PA', status: 'pending' },
+                { time: 'FT+15', action: 'Secondary metro run coordination call', status: 'pending' },
+              ].map(e => `
+                <div class="flex items-center gap-3 card card-sm">
+                  <div style="font-family:monospace;font-size:10px;color:var(--accent-primary);width:45px">${e.time}</div>
+                  <div style="flex:1;font-size:var(--text-sm)">${e.action}</div>
+                  <span class="badge ${e.status === 'ready' ? 'badge-green' : 'badge-purple'}">${e.status}</span>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+  <div class="toast-container"></div>
+
+  <script src="../../utils/venue-data.js"></script>
+  <script src="../../utils/websocket-mock.js"></script>
+  <script src="../../ai/gemini-client.js"></script>
+  <script src="../../pages/organizer/decision-support.js"></script>
+
+  <script>
+    let orgInited = {};
+
+    document.querySelectorAll('.org-sidebar-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.org-sidebar-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.org-content').forEach(c => c.classList.remove('active'));
+        btn.classList.add('active');
+        const section = btn.dataset.org;
+        document.getElementById(`org-content-${section}`)?.classList.add('active');
+
+        if (!orgInited[section]) {
+          orgInited[section] = true;
+          if (section === 'decision') DecisionSupport.init('decision-mount');
+        }
+      });
+    });
+
+    // Live crowd updates on situation room
+    MockDataStreams.subscribe('crowd', data => {
+      const grid = document.getElementById('org-crowd-grid');
+      if (!grid) return;
+      grid.innerHTML = data.zones.map(z => `
+        <div class="crowd-zone ${z.level}" style="padding:var(--space-3);min-height:60px">
+          <div style="font-size:10px;font-weight:700;text-transform:uppercase">${z.name}</div>
+          <div style="font-size:var(--text-xl);font-weight:800;font-family:'Orbitron',monospace">${Math.round(z.pct * 100)}%</div>
+        </div>
+      `).join('');
+    });
+
+    MockDataStreams.subscribe('match', data => {
+      const el = document.getElementById('org-minute');
+      const sc = document.getElementById('org-score');
+      if (el) el.textContent = `${data.minute}'`;
+      if (sc) sc.textContent = `${data.homeScore} — ${data.awayScore}`;
+    });
+
+    // Emergency Broadcast
+    document.getElementById('emergency-broadcast')?.addEventListener('click', () => {
+      Toast.warning('📢 Emergency broadcast sent to all staff channels and PA system');
+    });
+
+    // Sustainability report
+    document.getElementById('org-gen-report')?.addEventListener('click', async () => {
+      const el = document.getElementById('org-sustain-report');
+      el.style.display = 'block';
+      el.innerHTML = '<div class="animate-shimmer" style="height:100px;border-radius:8px"></div>';
+      const report = await GeminiClient.generateReport('sustainability', { match: 3 });
+      el.innerHTML = Utils.renderMarkdown(report);
+    });
+
+    Toast.init();
+    MockDataStreams.startAll();
+  </script>
+</body>
+</html>
