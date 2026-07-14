@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>StadiumIQ 2026 — Volunteer App</title>
+  <meta name="description" content="Volunteer AI app — translation relay, escalation, crowd awareness, shift info.">
+  <link rel="stylesheet" href="../../styles/global.css">
+  <link rel="stylesheet" href="../../styles/animations.css">
+  <link rel="stylesheet" href="../../styles/components.css">
+  <style>
+    .vol-tab-bar { display: flex; background: var(--glass-bg); border-top: 1px solid var(--glass-border); position: fixed; bottom: 0; left: 0; right: 0; z-index: var(--z-dropdown); }
+    .vol-tab-btn { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px; padding: var(--space-3) 0 calc(var(--space-3) + env(safe-area-inset-bottom)); border: none; background: transparent; color: var(--text-muted); font-size: 10px; text-transform: uppercase; letter-spacing: 0.06em; cursor: pointer; transition: all var(--transition-base); }
+    .vol-tab-btn .ti { font-size: 22px; transition: transform var(--transition-base); }
+    .vol-tab-btn.active { color: var(--accent-green); }
+    .vol-tab-btn.active .ti { transform: scale(1.15); filter: drop-shadow(0 0 6px var(--accent-green)); }
+    .vol-section { display: none; padding: var(--space-5) var(--space-4) 100px; max-width: 600px; margin: 0 auto; }
+    .vol-section.active { display: block; animation: fadeInUp 0.35s ease; }
+  </style>
+</head>
+<body class="hero-bg">
+
+  <nav class="navbar">
+    <a href="../../index.html" class="navbar-brand">
+      <div class="navbar-logo" style="background:var(--grad-volunteer)">🤝</div>
+      <div>
+        <div class="navbar-title">StadiumIQ</div>
+        <div class="navbar-subtitle">Volunteer App</div>
+      </div>
+    </a>
+    <div class="navbar-actions">
+      <div class="live-dot">On Duty</div>
+      <div class="navbar-persona">V-2284 · Gate C–F</div>
+    </div>
+  </nav>
+
+  <!-- Sections -->
+  <div class="vol-section active" id="vol-translate">
+    <div id="vol-assist-mount"></div>
+  </div>
+
+  <div class="vol-section" id="vol-crowd">
+    <h3 style="margin-bottom:var(--space-4)">👥 Zone Crowd Status</h3>
+    <div id="vol-crowd-grid" style="display:grid;grid-template-columns:repeat(2,1fr);gap:var(--space-3)">
+      <!-- Populated by JS -->
+    </div>
+    <div class="alert alert-warning" style="margin-top:var(--space-4)">
+      <span class="alert-icon">⚠️</span>
+      <div>Gate C — redirect fans to Gate D if queue exceeds 50. Current queue: <strong id="gate-c-q">38</strong> fans.</div>
+    </div>
+    <div class="card" style="margin-top:var(--space-4)">
+      <div style="font-weight:600;margin-bottom:var(--space-3)">🤖 AI Zone Briefing</div>
+      <div style="font-size:var(--text-sm);color:var(--text-secondary);line-height:1.7" id="vol-zone-brief">
+        Your zone (C–F) is currently at <strong>72% capacity</strong>. Main crowd languages: Arabic, Spanish, Japanese. Key point: Gate F is open with low queue. Medical team on standby Gate B. If you see fan distress, radio Channel 7.
+      </div>
+    </div>
+  </div>
+
+  <div class="vol-section" id="vol-tasks">
+    <h3 style="margin-bottom:var(--space-4)">✅ My Tasks</h3>
+    <div class="flex-col gap-3" id="task-list">
+      ${[
+        { task: 'Check in at Gate C checkpoint', done: true, time: '16:00' },
+        { task: 'Assist fans with Zone 3 directions', done: true, time: '16:30' },
+        { task: 'Monitor Gate C queue — redirect at 50', done: false, time: 'Ongoing' },
+        { task: 'Accessibility escort: A11Y-102 (Sarah K.)', done: false, time: '19:25', urgent: true },
+        { task: 'Halftime — food court crowd guidance', done: false, time: 'HT' },
+        { task: 'Post-match egress support — South Exit', done: false, time: 'FT+5' },
+      ].map(t => `
+        <div class="card card-sm flex items-center gap-3 ${t.urgent ? 'animate-border-glow' : ''}">
+          <input type="checkbox" ${t.done ? 'checked' : ''} style="width:18px;height:18px;accent-color:var(--accent-green);cursor:pointer">
+          <div style="flex:1">
+            <div style="font-size:var(--text-sm);${t.done ? 'text-decoration:line-through;color:var(--text-muted)' : 'font-weight:500'}">${t.task}</div>
+            ${t.urgent ? '<span class="badge badge-red" style="margin-top:4px">Urgent</span>' : ''}
+          </div>
+          <div style="font-family:monospace;font-size:10px;color:var(--text-muted)">${t.time}</div>
+        </div>
+      `).join('')}
+    </div>
+    <button class="btn btn-ghost btn-full" style="margin-top:var(--space-4)" id="log-incident-vol">🚨 Log New Incident</button>
+  </div>
+
+  <!-- Bottom Tab Bar -->
+  <div class="vol-tab-bar">
+    <button class="vol-tab-btn active" data-vol="translate" id="vtab-translate">
+      <span class="ti">🌍</span>Translate
+    </button>
+    <button class="vol-tab-btn" data-vol="crowd" id="vtab-crowd">
+      <span class="ti">👥</span>Zone
+    </button>
+    <button class="vol-tab-btn" data-vol="tasks" id="vtab-tasks">
+      <span class="ti">✅</span>Tasks
+    </button>
+  </div>
+
+  <div class="toast-container"></div>
+
+  <script src="../../utils/venue-data.js"></script>
+  <script src="../../utils/websocket-mock.js"></script>
+  <script src="../../ai/gemini-client.js"></script>
+  <script src="volunteer-assistant.js"></script>
+
+  <script>
+    let volInited = {};
+
+    document.querySelectorAll('.vol-tab-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.vol-tab-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.vol-section').forEach(s => s.classList.remove('active'));
+        btn.classList.add('active');
+        const section = btn.dataset.vol;
+        document.getElementById(`vol-${section}`)?.classList.add('active');
+
+        if (!volInited[section]) {
+          volInited[section] = true;
+          if (section === 'translate') VolunteerAssistant.init('vol-assist-mount');
+          if (section === 'crowd') initVolCrowd();
+        }
+      });
+    });
+
+    function initVolCrowd() {
+      MockDataStreams.subscribe('crowd', data => {
+        const grid = document.getElementById('vol-crowd-grid');
+        if (!grid) return;
+        const relevantZones = data.zones.slice(0, 6);
+        grid.innerHTML = relevantZones.map(z => `
+          <div class="crowd-zone ${z.level}" style="padding:var(--space-3);min-height:80px">
+            <div style="font-weight:700;font-size:10px;text-transform:uppercase;margin-bottom:4px">${z.name}</div>
+            <div style="font-size:var(--text-2xl);font-weight:800;font-family:'Orbitron',monospace">${Math.round(z.pct * 100)}%</div>
+            <div style="font-size:10px;opacity:0.8;margin-top:2px">${z.level.toUpperCase()}</div>
+          </div>
+        `).join('');
+
+        // Update gate C queue
+        const gateC = data.zones.find(z => z.id === 'gate-c');
+        if (gateC) {
+          const qEl = document.getElementById('gate-c-q');
+          if (qEl) qEl.textContent = Math.floor(gateC.pct * 60);
+        }
+      });
+    }
+
+    document.getElementById('log-incident-vol')?.addEventListener('click', () => {
+      Toast.success('🚨 Incident logged and sent to Supervisor Channel 7');
+    });
+
+    Toast.init();
+    MockDataStreams.startAll();
+    VolunteerAssistant.init('vol-assist-mount');
+    volInited.translate = true;
+  </script>
+</body>
+</html>
