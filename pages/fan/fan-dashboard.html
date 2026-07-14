@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>StadiumIQ 2026 — Fan Experience</title>
+  <meta name="description" content="AI-powered fan companion for FIFA World Cup 2026. Navigation, transport, live match, multilingual assistant.">
+  <link rel="stylesheet" href="../../styles/global.css">
+  <link rel="stylesheet" href="../../styles/animations.css">
+  <link rel="stylesheet" href="../../styles/components.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    .page { padding-bottom: 80px; }
+    .page-section { display: none; }
+    .page-section.active { display: block; animation: fadeInUp 0.35s ease both; }
+    .tab-content { padding: var(--space-5) var(--space-4); max-width: 900px; margin: 0 auto; }
+    .match-banner {
+      background: linear-gradient(90deg, rgba(79,142,247,0.12), rgba(124,58,237,0.08), rgba(245,166,35,0.08));
+      border-bottom: 1px solid var(--glass-border);
+      padding: var(--space-3) var(--space-5);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: var(--space-4);
+      overflow-x: auto;
+    }
+  </style>
+</head>
+<body class="hero-bg">
+
+  <!-- Navbar -->
+  <nav class="navbar">
+    <a href="../../index.html" class="navbar-brand" id="back-home">
+      <div class="navbar-logo">🏟️</div>
+      <div>
+        <div class="navbar-title">StadiumIQ</div>
+        <div class="navbar-subtitle">Fan View</div>
+      </div>
+    </a>
+    <div class="navbar-actions">
+      <div class="live-dot" id="live-badge">Live</div>
+      <div class="navbar-persona" id="venue-info">
+        <span>🏟️</span> MetLife Stadium
+      </div>
+    </div>
+  </nav>
+
+  <!-- Match Banner (Live Ticker) -->
+  <div class="match-banner" id="match-banner">
+    <div class="flex items-center gap-4">
+      <div class="match-score">
+        <span class="team-flag">🇧🇷</span>
+        <span class="score-num" id="score-home">1</span>
+        <span class="score-sep">—</span>
+        <span class="score-num" id="score-away">1</span>
+        <span class="team-flag">🇦🇷</span>
+      </div>
+      <div>
+        <div style="font-size:var(--text-xs);color:var(--text-muted)">Brazil vs Argentina</div>
+        <div style="font-size:var(--text-xs)"><span class="badge badge-red badge-pulse" id="match-phase">LIVE</span> <span id="match-minute">67'</span></div>
+      </div>
+    </div>
+    <div style="font-size:var(--text-xs);color:var(--text-secondary);text-align:right;min-width:160px" id="last-event">
+      ⚽ Messi (ARG) 67'
+    </div>
+  </div>
+
+  <!-- Main Content -->
+  <div class="page">
+    <!-- Navigation Tab -->
+    <div class="page-section active" id="section-nav">
+      <div class="tab-content">
+        <div class="section-header">
+          <div><h2>🧭 Navigation</h2><div class="text-muted text-sm">Crowd-aware · AI-routed</div></div>
+        </div>
+        <div id="fan-nav-mount"></div>
+      </div>
+    </div>
+
+    <!-- AI Assistant Tab -->
+    <div class="page-section" id="section-assistant">
+      <div style="height:calc(100vh - 180px);display:flex;flex-direction:column">
+        <div style="padding:var(--space-4) var(--space-4) 0;max-width:900px;margin:0 auto;width:100%">
+          <h2>🤖 AI Assistant</h2>
+          <div class="text-muted text-sm" style="margin-top:4px">Multilingual · Voice · 50+ Languages</div>
+        </div>
+        <div id="fan-assistant-mount" style="flex:1;overflow:hidden;max-width:900px;margin:var(--space-4) auto 0;width:100%;padding:0 var(--space-4)"></div>
+      </div>
+    </div>
+
+    <!-- Transport Tab -->
+    <div class="page-section" id="section-transport">
+      <div class="tab-content">
+        <div class="section-header">
+          <div><h2>🚌 Smart Transport</h2><div class="text-muted text-sm">AI departure advisor · Live updates</div></div>
+        </div>
+        <div id="fan-transport-mount"></div>
+      </div>
+    </div>
+
+    <!-- Matchday Tab -->
+    <div class="page-section" id="section-matchday">
+      <div class="tab-content">
+        <div class="section-header">
+          <div><h2>⚽ Matchday</h2><div class="text-muted text-sm">Live stats · AI companion · Fan zone</div></div>
+        </div>
+        <div id="fan-matchday-mount"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bottom Navigation -->
+  <nav class="bottom-nav" id="bottom-nav">
+    <button class="bottom-nav-btn active" data-section="nav" id="nav-btn-nav">
+      <span class="nav-icon">🗺️</span>Navigate
+    </button>
+    <button class="bottom-nav-btn" data-section="assistant" id="nav-btn-assistant">
+      <span class="nav-icon">🤖</span>Assistant
+    </button>
+    <button class="bottom-nav-btn" data-section="transport" id="nav-btn-transport">
+      <span class="nav-icon">🚌</span>Transport
+    </button>
+    <button class="bottom-nav-btn" data-section="matchday" id="nav-btn-matchday">
+      <span class="nav-icon">⚽</span>Matchday
+    </button>
+  </nav>
+
+  <!-- Toast container -->
+  <div class="toast-container" id="toast-container"></div>
+
+  <!-- Scripts -->
+  <script src="../../utils/venue-data.js"></script>
+  <script src="../../utils/websocket-mock.js"></script>
+  <script src="../../ai/gemini-client.js"></script>
+  <script src="fan-nav.js"></script>
+  <script src="fan-assistant.js"></script>
+  <script src="fan-transport.js"></script>
+
+  <script>
+    // ── Tab Navigation ──────────────────────────────────────
+    const sections = ['nav','assistant','transport','matchday'];
+    let currentSection = 'nav';
+    let modulesInited = { nav: false, assistant: false, transport: false, matchday: false };
+
+    function switchSection(id) {
+      document.querySelectorAll('.page-section').forEach(s => s.classList.remove('active'));
+      document.querySelectorAll('.bottom-nav-btn').forEach(b => b.classList.remove('active'));
+      document.getElementById(`section-${id}`)?.classList.add('active');
+      document.getElementById(`nav-btn-${id}`)?.classList.add('active');
+      currentSection = id;
+
+      if (!modulesInited[id]) {
+        modulesInited[id] = true;
+        if (id === 'nav')       FanNav.init('fan-nav-mount');
+        if (id === 'assistant') FanAssistant.init('fan-assistant-mount');
+        if (id === 'transport') FanTransport.init('fan-transport-mount');
+        if (id === 'matchday')  initMatchday();
+      }
+    }
+
+    document.querySelectorAll('.bottom-nav-btn').forEach(btn => {
+      btn.addEventListener('click', () => switchSection(btn.dataset.section));
+    });
+
+    // ── Matchday Module (inline for simplicity) ─────────────
+    function initMatchday() {
+      const el = document.getElementById('fan-matchday-mount');
+      if (!el) return;
+      el.innerHTML = `
+        <div class="flex-col gap-5">
+          <!-- Live Match Stats -->
+          <div class="card">
+            <div class="section-header">
+              <div class="section-title">📊 Live Match Stats</div>
+              <span class="badge badge-red badge-pulse">67'</span>
+            </div>
+            <div class="flex-col gap-4">
+              ${[
+                { label: 'Possession', home: 54, away: 46, unit: '%' },
+                { label: 'Shots', home: 8, away: 5, unit: '' },
+                { label: 'Shots on Target', home: 4, away: 3, unit: '' },
+                { label: 'xG', home: 2.3, away: 1.1, unit: '' },
+                { label: 'Passes', home: 312, away: 278, unit: '' },
+              ].map(s => `
+                <div>
+                  <div class="flex justify-between" style="font-size:var(--text-xs);color:var(--text-muted);margin-bottom:4px">
+                    <span style="color:var(--text-primary);font-weight:600">${s.home}${s.unit}</span>
+                    <span>${s.label}</span>
+                    <span style="color:var(--text-primary);font-weight:600">${s.away}${s.unit}</span>
+                  </div>
+                  <div style="display:flex;height:6px;border-radius:999px;overflow:hidden;background:var(--bg-raised)">
+                    <div style="width:${(s.home/(s.home+s.away))*100}%;background:var(--grad-fan);border-radius:999px 0 0 999px"></div>
+                    <div style="flex:1;background:var(--grad-gold);border-radius:0 999px 999px 0"></div>
+                  </div>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+
+          <!-- AI Commentary -->
+          <div class="card" style="background:rgba(79,142,247,0.05);border-color:rgba(79,142,247,0.2)">
+            <div class="flex items-center gap-3" style="margin-bottom:var(--space-3)">
+              <div style="width:32px;height:32px;background:var(--grad-primary);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px">🤖</div>
+              <div style="font-weight:600;font-size:var(--text-sm)">AI Match Companion</div>
+            </div>
+            <div style="font-size:var(--text-sm);color:var(--text-secondary);line-height:1.7">
+              ⚡ <strong>What a game!</strong> Brazil leads 2–1 after Vinicius Jr.'s stunning curler in the 63rd minute. Argentina have dominated possession in the last 10 minutes and Messi has had 3 key touches near the box. Expect fireworks in the final 20 minutes. 🔥
+            </div>
+            <div style="margin-top:var(--space-3)">
+              <button class="btn btn-ghost btn-sm" id="refresh-commentary">🔄 Refresh Commentary</button>
+            </div>
+          </div>
+
+          <!-- Match Trivia -->
+          <div class="card">
+            <div class="section-title" style="margin-bottom:var(--space-4)">🧠 AI Match Trivia</div>
+            <div id="trivia-card" style="background:var(--glass-bg);border-radius:var(--radius-md);padding:var(--space-4);border:1px solid var(--glass-border)">
+              <div style="font-size:var(--text-sm);font-weight:500;margin-bottom:var(--space-3)">🤔 Which FIFA World Cup had the most goals scored in a single match?</div>
+              <div class="flex-col gap-2" id="trivia-options">
+                ${['A) Brazil 1950 — 8 goals', 'B) France 1998 — 9 goals', 'C) Austria vs Switzerland 1954 — 12 goals', 'D) England 1966 — 7 goals'].map((o, i) => `
+                  <button class="btn btn-ghost btn-full" style="justify-content:flex-start" onclick="selectTrivia(this, ${i === 2})">${o}</button>
+                `).join('')}
+              </div>
+            </div>
+            <button class="btn btn-outline btn-sm" style="margin-top:var(--space-3);width:100%" id="next-trivia">Next Question →</button>
+          </div>
+
+          <!-- Plan My Matchday -->
+          <div class="card">
+            <div class="section-title" style="margin-bottom:var(--space-4)">📅 Plan My Matchday</div>
+            <div class="flex-col gap-3">
+              ${[
+                { time: '15:00', event: 'Arrive Gate C', note: 'Pre-match, low crowds', done: false },
+                { time: '16:00', event: 'Visit Fan Zone Level 1', note: 'Interactive exhibits + photo ops', done: false },
+                { time: '17:00', event: 'Food at Zone 3', note: 'Halal option available, 5 min wait', done: false },
+                { time: '17:30', event: 'Head to Section 114', note: 'Player warm-ups starting', done: false },
+                { time: '18:00', event: '⚽ Kick-off!', note: 'Brazil vs Argentina', done: false },
+                { time: '85\'', event: 'AI: Best time to leave', note: 'Beat egress surge via Metro L3', done: false },
+              ].map(i => `
+                <div class="flex gap-3 items-center" style="padding:var(--space-3) 0;border-bottom:1px solid var(--glass-border)">
+                  <div style="font-family:'Orbitron',monospace;font-size:10px;color:var(--accent-primary);width:40px;flex-shrink:0">${i.time}</div>
+                  <div style="flex:1">
+                    <div style="font-size:var(--text-sm);font-weight:500">${i.event}</div>
+                    <div style="font-size:10px;color:var(--text-muted)">${i.note}</div>
+                  </div>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        </div>`;
+
+      document.getElementById('refresh-commentary')?.addEventListener('click', async () => {
+        const el2 = document.querySelector('#fan-matchday-mount .card:nth-child(2) div:nth-child(2)');
+        if (el2) {
+          el2.innerHTML = '<div class="typing-indicator"><div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div></div>';
+          const r = await GeminiClient.chat('fan', 'What is happening in the match right now?');
+          el2.innerHTML = Utils.renderMarkdown(r);
+        }
+      });
+
+      window.selectTrivia = (btn, correct) => {
+        document.querySelectorAll('#trivia-options button').forEach(b => { b.disabled = true; });
+        btn.style.background = correct ? 'rgba(34,197,94,0.2)' : 'rgba(239,68,68,0.2)';
+        btn.style.borderColor = correct ? 'var(--accent-green)' : 'var(--accent-red)';
+        if (!correct) document.querySelectorAll('#trivia-options button')[2].style.background = 'rgba(34,197,94,0.2)';
+        Toast.info(correct ? '🎉 Correct! Austria vs Switzerland 1954 — 7–5 (12 goals)!' : '❌ Not quite! The answer is C) 12 goals.');
+      };
+    }
+
+    // ── Match Live Updates ──────────────────────────────────
+    MockDataStreams.subscribe('match', data => {
+      const score_home = document.getElementById('score-home');
+      const score_away = document.getElementById('score-away');
+      const min_el = document.getElementById('match-minute');
+      const phase_el = document.getElementById('match-phase');
+      if (score_home) score_home.textContent = data.homeScore;
+      if (score_away) score_away.textContent = data.awayScore;
+      if (min_el) min_el.textContent = `${data.minute}'`;
+      if (phase_el) phase_el.textContent = data.phase;
+    });
+
+    MockDataStreams.subscribe('matchEvent', event => {
+      const el = document.getElementById('last-event');
+      if (el && event.type === 'goal') {
+        const flag = event.team === 'home' ? '🇧🇷' : '🇦🇷';
+        el.textContent = `⚽ ${flag} ${event.player} (${event.team === 'home' ? 'BRA' : 'ARG'}) ${event.minute}'`;
+        el.style.color = 'var(--accent-gold)';
+        Toast.success(`⚽ GOAL! ${event.player} scores at ${event.minute}'!`);
+      }
+    });
+
+    // ── Init ────────────────────────────────────────────────
+    Toast.init();
+    MockDataStreams.startAll();
+    switchSection('nav');
+  </script>
+</body>
+</html>
